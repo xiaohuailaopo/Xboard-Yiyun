@@ -80,9 +80,16 @@ class PaymentService
             $notifyUrl = $this->config['notify_domain'] . $parseUrl['path'];
         }
 
+        $themeBase = rtrim((string) admin_setting('app_url'), '/');
+        $allowedThemeOrigins = array_merge([$themeBase], config('payment.theme_origins', []));
+        $themeOrigin = (string) request()->header('X-Elegant-Theme-Origin', '');
+        if (in_array($themeOrigin, $allowedThemeOrigins, true)) {
+            $themeBase = $themeOrigin;
+        }
+
         return $this->payment->pay([
             'notify_url' => $notifyUrl,
-            'return_url' => source_base_url('/#/order/' . $order['trade_no']),
+            'return_url' => $themeBase . '/dashboard/order/?id=' . rawurlencode((string) $order['trade_no']),
             'trade_no' => $order['trade_no'],
             'total_amount' => $order['total_amount'],
             'user_id' => $order['user_id'],
