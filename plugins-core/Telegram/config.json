@@ -34,7 +34,7 @@
         },
         "start_bind_guide": {
             "type": "text",
-            "default": "🔗 请先绑定您的 XBoard 账号：\\n1. 登录您的 XBoard 账户\\n2. 复制您的订阅链接\\n3. 发送 /bind + 订阅链接",
+            "default": "🔗 请先绑定您的 XBoard 账号：\\n1. 登录您的 XBoard 账户\\n2. 从网站个人中心打开机器人\\n3. 在机器人私聊中点击开始",
             "label": "绑定指导",
             "description": "未绑定用户显示的绑定指导文本"
         },
@@ -46,7 +46,7 @@
         },
         "start_bind_commands": {
             "type": "text",
-            "default": "📋 可用命令：\\n/bind [订阅链接] - 绑定账号",
+            "default": "📋 可用命令：\\n/bind [绑定码] - 绑定账号",
             "label": "未绑定用户命令列表",
             "description": "未绑定用户显示的命令列表"
         },

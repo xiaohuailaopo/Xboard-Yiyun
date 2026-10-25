@@ -162,6 +162,12 @@ class Plugin extends AbstractPlugin
 
   public function handleStartCommand(object $msg): void
   {
+    $code = (string) ($msg->args[0] ?? '');
+    if (strpos($code, 'eg_') === 0) {
+      $this->handleBindCommand($msg);
+      return;
+    }
+
     $welcomeTitle = $this->getConfig('start_welcome_title', '🎉 欢迎使用 XBoard Telegram Bot！');
     $botDescription = $this->getConfig('start_bot_description', '🤖 我是您的专属助手，可以帮助您：\\n• 绑定您的 XBoard 账号\\n• 查看流量使用情况\\n• 获取最新订阅链接\\n• 管理账号绑定状态');
     $footer = $this->getConfig('start_footer', '💡 提示：所有命令都需要在私聊中使用');
@@ -173,8 +179,8 @@ class Plugin extends AbstractPlugin
       $welcomeText .= "✅ 您已绑定账号：{$user->email}\n\n";
       $welcomeText .= $this->getConfig('start_unbind_guide', '📋 可用命令：\\n/traffic - 查看流量使用情况\\n/getlatesturl - 获取订阅链接\\n/unbind - 解绑账号');
     } else {
-      $welcomeText .= $this->getConfig('start_bind_guide', '🔗 请先绑定您的 XBoard 账号：\\n1. 登录您的 XBoard 账户\\n2. 复制您的订阅链接\\n3. 发送 /bind + 订阅链接') . "\n\n";
-      $welcomeText .= $this->getConfig('start_bind_commands', '📋 可用命令：\\n/bind [订阅链接] - 绑定账号');
+      $welcomeText .= $this->getConfig('start_bind_guide', '🔗 请先绑定您的 XBoard 账号：\\n1. 登录您的 XBoard 账户\\n2. 从网站个人中心打开机器人\\n3. 在机器人私聊中点击开始') . "\n\n";
+      $welcomeText .= $this->getConfig('start_bind_commands', '📋 可用命令：\\n/bind [绑定码] - 绑定账号');
     }
 
     $welcomeText .= "\n\n" . $footer;
@@ -266,58 +272,16 @@ class Plugin extends AbstractPlugin
     if (!$this->checkPrivateChat($msg)) {
       return;
     }
-
-    $subscribeUrl = $msg->args[0] ?? null;
-    if (!$subscribeUrl) {
-      $this->sendMessage($msg, '参数有误，请携带订阅地址发送');
+    try {
+      $user = \App\Services\ElegantTelegramBinding::bind(
+        (string) ($msg->args[0] ?? ''), $msg->chat_id
+      );
+    } catch (\DomainException $e) {
+      $this->sendMessage($msg, $e->getMessage());
       return;
     }
-
-    $token = $this->extractTokenFromUrl($subscribeUrl);
-    if (!$token) {
-      $this->sendMessage($msg, '订阅地址无效');
-      return;
-    }
-
-    $user = User::where('token', $token)->first();
-    if (!$user) {
-      $this->sendMessage($msg, '用户不存在');
-      return;
-    }
-
-    if ($user->telegram_id) {
-      $this->sendMessage($msg, '该账号已经绑定了Telegram账号');
-      return;
-    }
-
-    $user->telegram_id = $msg->chat_id;
-    if (!$user->save()) {
-      $this->sendMessage($msg, '设置失败');
-      return;
-    }
-
     HookManager::call('user.telegram.bind.after', [$user]);
     $this->sendMessage($msg, '绑定成功');
-  }
-
-  protected function extractTokenFromUrl(string $url): ?string
-  {
-    $parsedUrl = parse_url($url);
-
-    if (isset($parsedUrl['query'])) {
-      parse_str($parsedUrl['query'], $query);
-      if (isset($query['token'])) {
-        return $query['token'];
-      }
-    }
-
-    if (isset($parsedUrl['path'])) {
-      $pathParts = explode('/', trim($parsedUrl['path'], '/'));
-      $lastPart = end($pathParts);
-      return $lastPart ?: null;
-    }
-
-    return null;
   }
 
   public function handleTrafficCommand(object $msg): void

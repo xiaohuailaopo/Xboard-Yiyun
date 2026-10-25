@@ -9,14 +9,16 @@ use Illuminate\Http\Request;
 
 class TelegramController extends Controller
 {
-    public function getBotInfo()
+    public function getBotInfo(Request $request)
     {
+        $user = $request->user();
+        abort_unless($user, 403);
         $telegramService = new TelegramService();
         $response = $telegramService->getMe();
-        $data = [
-            'username' => $response->result->username
-        ];
-        return $this->success($data);
+        return $this->success([
+            'username' => $response->result->username,
+            'binding_code' => \App\Services\ElegantTelegramBinding::issue((int) $user->id),
+        ])->header('Cache-Control', 'no-store, private');
     }
 
     public function unbind(Request $request)
